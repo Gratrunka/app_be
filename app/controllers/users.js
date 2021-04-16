@@ -72,10 +72,24 @@ class UsersCtl {
       password: { type: 'string', required: true },
     });
     const user = await User.findOne(ctx.request.body);
-    if (!user) { ctx.throw(401, '用户名或密码不正确'); }
-    const { _id, name } = user;
-    const token = jsonwebtoken.sign({ _id, name }, secret, { expiresIn: '1d' });
-    ctx.body = { token };
+    if (!user) { 
+      // ctx.throw(401, '用户名或密码不正确'); 
+      const { name } = ctx.request.body;
+      const repeatedUser = await User.findOne({ name });
+      if (repeatedUser) { ctx.throw(409, '用户已经占用'); }
+      const user = await new User(ctx.request.body).save();
+      const { _id } = user;
+      const token = jsonwebtoken.sign({ _id, name }, secret, { expiresIn: '1d' });
+      ctx.body = { token,user };
+      // ctx.body = user;
+      
+    }else{
+      console.log(user);
+      const { _id, name } = user;
+      const token = jsonwebtoken.sign({ _id, name }, secret, { expiresIn: '1d' });
+      ctx.body = { token };
+    }
+    
   }
   async listFollowing(ctx) {
     const user = await User.findById(ctx.params.id).select('+following').populate('following');
